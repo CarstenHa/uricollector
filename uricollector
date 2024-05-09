@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+
+import webbrowser
+import argparse
+import requests
+import time
+import sys
+import os
+import shutil
+
+parser = argparse.ArgumentParser(description='''
+uricollector - URIs auflisten und/oder in Datei sammeln.
+''', formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('-b', '--backup', action='store_true', help='''Erstellt eine Sicherungskopie von uricollector.txt.
+Standardmäßig werden neue Einträge ohne Nachfrage in eine uricollector.txt aufgenommen.''')
+parser.add_argument('-c', '--check', action='store_true', help='''Überprüft eine URI.
+Beschreibung der exit-Codes:
+0 = Seite existiert (HTTP-Statuscode ist 200).
+1 = Seite existiert nicht.
+2 = Probleme bei der Netzwerkverbindung.''')
+parser.add_argument('-o', '--open', action='store_true', help='Öffnet URI(s) im Webbrowser.')
+parser.add_argument('-s', '--save', action='store_true', help='''Sichert ausgewählte URIs in Datei.
+Nur neue URIs werden aufgenommen.''')
+parser.add_argument("suchwort", metavar='STR', nargs="+", help='''Es können mehrere Suchwörter angegeben werden.
+Bei der Option -c wird allerdings nur eine URI geprüft.''')
+args = parser.parse_args()
+
+query = ' '.join(args.suchwort)
+anzres = 10
+
+try:
+    from googlesearch import search
+except ImportError: 
+    print("Kein Modul googlesearch gefunden. Bitte erst installieren.")
+    sys.exit(1)
+
+def makebackup(filename):
+    if os.path.exists(filename):
+        bcount = 1
+        rawfilename = filename.rstrip(".txt")
+        while True:
+            backup_filename = f"{rawfilename}{bcount}.bak"
+            if not os.path.exists(backup_filename):
+                shutil.copyfile(filename, backup_filename)
+                print(f"Sicherungskopie wurde als '{backup_filename}' erstellt.")
+                break
+            bcount += 1
+ 
+if args.open or args.save:
+
+    if args.backup:
+        makebackup('uricollector.txt')
+
+    result = {}
+
+    for j in search(query, num_results=anzres, advanced=True):
+        result.update({j.url: j.description})
+
+    def ausgabe():
+        zahl = 0
+        for paar in result.items():
+            zahl = zahl + 1
+            print(f"{zahl:>2}", paar[0], '\n  ', paar[1], '\n')
+        userinput = input("Bitte URI wählen (Mehrfache Angaben durch Leerzeichen trennen; 0=Abbruch): ")
+        if userinput == "0":
+            sys.exit()
+        else:
+            return userinput
+
+    def saveuri():
+        gefunden = False
+        if os.path.exists('uricollector.txt'):
+            with open('uricollector.txt', 'r') as f:
+                if f'{ausgewählte_uri};' in f.read():
+                    gefunden = True
+        if not gefunden:
+            with open('uricollector.txt', 'a') as f:
+                f.write(f"{ausgewählte_uri};{','.join(args.suchwort)}\n")
+            print(f'URI {ausgewählte_uri} neu aufgenommen.')
+        else:
+            print(f'URI {ausgewählte_uri} existiert bereits.')
+
+    print("\n*** Suchergebnis ***\n")
+    auswnr = ausgabe()
+
+    newresult = {}
+    for auswzahl in auswnr.split(" "):
+        auswahl = int(auswzahl) - 1
+        # Neues Dictionary mit Auswahl wird gefüllt.
+        newresult.update({list(result.items())[auswahl]})
+        schlüssel_liste = list(result.keys())
+        ausgewählte_uri = schlüssel_liste[auswahl]
+
+        if args.open:
+            webbrowser.open(ausgewählte_uri)
+            time.sleep(3)
+        elif args.save:
+            saveuri()
+
+
+    if args.save and args.open:
+        result = newresult
+        print("\n*** Sicherung der URI ***\n")
+        auswnr = ausgabe()
+
+        for auswzahl in auswnr.split(" "):
+            auswahl = int(auswzahl) - 1
+            schlüssel_liste = list(result.keys())
+            ausgewählte_uri = schlüssel_liste[auswahl]
+            saveuri()
+
+elif args.check:
+
+    def check_website(url):
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                print(f"Die Webseite {url} existiert.")
+                sys.exit(0)
+            else:
+                print(f"Die Webseite {url} existiert nicht.")
+                sys.exit(1)
+        except requests.ConnectionError:
+            print("Es gab ein Problem beim Verbinden.")
+            sys.exit(2)
+
+    check_website(query)
+
+else:
+
+    for j in search(query, num_results=anzres):
+        print(j)
