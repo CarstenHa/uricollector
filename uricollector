@@ -53,61 +53,68 @@ if args.open or args.save:
 
     result = {}
 
-    for j in search(query, num_results=anzres, advanced=True):
+    glist = search(query, num_results=anzres, advanced=True)
+    for j in glist:
         result.update({j.url: j.description})
 
-    def ausgabe():
-        zahl = 0
-        for paar in result.items():
-            zahl = zahl + 1
-            print(f"{zahl:>2}", paar[0], '\n  ', paar[1], '\n')
-        userinput = input("Bitte URI wählen (Mehrfache Angaben durch Leerzeichen trennen; 0=Abbruch): ")
-        if userinput == "0":
-            sys.exit()
-        else:
-            return userinput
+    if len(result) > 0:
 
-    def saveuri():
-        gefunden = False
-        if os.path.exists('uricollector.txt'):
-            with open('uricollector.txt', 'r') as f:
-                if f'{ausgewählte_uri};' in f.read():
-                    gefunden = True
-        if not gefunden:
-            with open('uricollector.txt', 'a') as f:
-                f.write(f"{ausgewählte_uri};{','.join(args.suchwort)}\n")
-            print(f'URI {ausgewählte_uri} neu aufgenommen.')
-        else:
-            print(f'URI {ausgewählte_uri} existiert bereits.')
+        def ausgabe():
+            zahl = 0
+            for paar in result.items():
+                zahl = zahl + 1
+                print(f"{zahl:>2}", paar[0], '\n  ', paar[1], '\n')
+            userinput = input("Bitte URI wählen (Mehrfache Angaben durch Leerzeichen trennen; 0=Abbruch): ")
+            if userinput == "0":
+                sys.exit()
+            else:
+                return userinput
 
-    print("\n*** Suchergebnis ***\n")
-    auswnr = ausgabe()
+        def saveuri():
+            gefunden = False
+            if os.path.exists('uricollector.txt'):
+                with open('uricollector.txt', 'r') as f:
+                    if f'{ausgewählte_uri};' in f.read():
+                        gefunden = True
+            if not gefunden:
+                with open('uricollector.txt', 'a') as f:
+                    f.write(f"{ausgewählte_uri};{','.join(args.suchwort)}\n")
+                print(f'URI {ausgewählte_uri} neu aufgenommen.')
+            else:
+                print(f'URI {ausgewählte_uri} existiert bereits.')
 
-    newresult = {}
-    for auswzahl in auswnr.split(" "):
-        auswahl = int(auswzahl) - 1
-        # Neues Dictionary mit Auswahl wird gefüllt.
-        newresult.update({list(result.items())[auswahl]})
-        schlüssel_liste = list(result.keys())
-        ausgewählte_uri = schlüssel_liste[auswahl]
-
-        if args.open:
-            webbrowser.open(ausgewählte_uri)
-            time.sleep(3)
-        elif args.save:
-            saveuri()
-
-
-    if args.save and args.open:
-        result = newresult
-        print("\n*** Sicherung der URI ***\n")
+        print("\n*** Suchergebnis ***\n")
         auswnr = ausgabe()
 
+        newresult = {}
         for auswzahl in auswnr.split(" "):
             auswahl = int(auswzahl) - 1
+            # Neues Dictionary mit Auswahl wird gefüllt.
+            newresult.update({list(result.items())[auswahl]})
             schlüssel_liste = list(result.keys())
             ausgewählte_uri = schlüssel_liste[auswahl]
-            saveuri()
+
+            if args.open:
+                webbrowser.open(ausgewählte_uri)
+                time.sleep(3)
+            elif args.save:
+                saveuri()
+
+
+        if args.save and args.open:
+            result = newresult
+            print("\n*** Sicherung der URI ***\n")
+            auswnr = ausgabe()
+
+            for auswzahl in auswnr.split(" "):
+                auswahl = int(auswzahl) - 1
+                schlüssel_liste = list(result.keys())
+                ausgewählte_uri = schlüssel_liste[auswahl]
+                saveuri()
+
+    else:
+
+        print("Nichts passendes gefunden.")
 
 elif args.check:
 
@@ -128,5 +135,6 @@ elif args.check:
 
 else:
 
-    for j in search(query, num_results=anzres):
+    glist = search(query, num_results=anzres)
+    for j in glist:
         print(j)
