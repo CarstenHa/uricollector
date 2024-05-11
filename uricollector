@@ -53,8 +53,7 @@ if args.open or args.save:
 
     result = {}
 
-    glist = search(query, num_results=anzres, advanced=True)
-    for j in glist:
+    for j in search(query, num_results=anzres, advanced=True):
         result.update({j.url: j.description})
 
     if len(result) > 0:
@@ -135,6 +134,5 @@ elif args.check:
 
 else:
 
-    glist = search(query, num_results=anzres)
-    for j in glist:
+    for j in search(query, num_results=anzres):
         print(j)
